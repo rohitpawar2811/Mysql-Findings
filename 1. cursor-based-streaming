@@ -1,0 +1,49 @@
+Explaination :
+ 
+Do you know about how MySQL's default ResultSet behavior can be inefficient when working with large data sets? because by default ResultSet stores all query data in-memory(client-side) which can lead us to a memory-overflow situation, and If you're looking to optimize memory flow on the client side, you can use MySQL's cursor-based streaming feature and set the fetch size to a set number of rows per batch.
+
+Did you know? that by enabling the "useCursorFetch=true" connection property and calling setFetchSize() with the desired number of rows, you can fetch the result set in smaller batches from MySQL-server side where a temporary table maintains data ,that's how it reducing memory requirements. This can be a great way to improve performance and save memory.
+
+What do you think?
+Have you used cursor-based streaming in MySQL before?
+Let me know!
+
+If you want to know more about this refer here
+
+https://lnkd.in/de2vJ7k6
+
+
+
+
+Code Reference :
+
+this.useCursorFetch = true;
+
+ServerPreparedQuery.java 
+//
+        // store the parameter values
+        //
+        boolean sendQueryAttributes = false;
+        if (this.session.getServerSession().supportsQueryAttributes()) {
+            // Servers between 8.0.23 8.0.25 are affected by Bug#103102, Bug#103268 and Bug#103377. Query attributes cannot be sent to these servers.
+            sendQueryAttributes = this.session.getServerSession().getServerVersion().meetsMinimum(new ServerVersion(8, 0, 26));
+        } else if (this.queryAttributesBindings.getCount() > 0) {
+            this.session.getLog().logWarn(Messages.getString("QueryAttributes.SetButNotSupported"));
+        }
+
+        byte flags = 0;
+        if (this.resultFields != null && this.resultFields.getFields() != null && this.useCursorFetch && this.resultSetType == Type.FORWARD_ONLY
+                && this.fetchSize > 0) {
+            // we only create cursor-backed result sets if
+            // a) The query is a SELECT
+            // b) The server supports it
+            // c) We know it is forward-only (note this doesn't preclude updatable result sets)
+            // d) The user has set a fetch size
+            flags |= OPEN_CURSOR_FLAG;
+        }
+        if (sendQueryAttributes) {
+            flags |= PARAMETER_COUNT_AVAILABLE;
+        }
+
+        return this.commandBuilder.buildComStmtExecute(this.session.getSharedSendPacket(), this.serverStatementId, flags, sendQueryAttributes, this);
+    }
